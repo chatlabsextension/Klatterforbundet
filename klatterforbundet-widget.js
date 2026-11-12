@@ -261,20 +261,68 @@
     if (!u) { u = 'kf-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); mem.u = u; store('kf:u', u); }
     return u;
   }
-  function vfCall(action) {
-    return fetch('https://general-runtime.voiceflow.com/public/' + encodeURIComponent(VF.projectID) + '/state/user/' + encodeURIComponent(vfUser()) + '/interact', {
+  var RUNTIME = 'https://general-runtime.voiceflow.com', streamOK = null;
+  function tracesOf(res) { return Array.isArray(res) ? res : ((res && (res.trace || res.traces)) || []); }
+  function nodeText(n) {
+    if (n == null) return '';
+    if (typeof n.text === 'string') return n.text;
+    var kids = n.children || [], inner = kids.map(nodeText).join(kids.some(function (k) { return k && k.children && k.type !== 'link'; }) ? '\n' : '');
+    return n.type === 'link' && n.url ? '[' + (inner || n.url) + '](' + n.url + ')' : inner;
+  }
+  function textOf(p) {
+    var msg = typeof p.message === 'string' ? p.message : '', c = p.slate && (p.slate.content || p.slate), sl = Array.isArray(c) ? c.map(nodeText).join('\n') : '';
+    return msg.trim() ? msg : sl;
+  }
+  // Den vanliga vägen: hela svaret kommer när Voiceflow är klart.
+  function vfPlain(action, onTrace) {
+    return fetch(RUNTIME + '/public/' + encodeURIComponent(VF.projectID) + '/state/user/' + encodeURIComponent(vfUser()) + '/interact', {
       method: 'POST', headers: { 'Content-Type': 'application/json', versionID: VF.versionID || 'production' },
       body: JSON.stringify({ action: action, config: { tts: false, stripSSML: true } })
-    }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+    }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function (res) { tracesOf(res).forEach(onTrace); });
+  }
+  // Streaming: samma publika väg som Voiceflows egen chatt och Smartsvars widget.js använder.
+  function vfStream(action, onTrace) {
+    var got = false, env = VF.versionID === 'development' ? 'development' : 'production';
+    return fetch(RUNTIME + '/v2/public/project/' + encodeURIComponent(VF.projectID) + '/user/' + encodeURIComponent(vfUser()) + '/interact/stream?audio_events=false&completion_events=true&environment=' + env, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: JSON.stringify({ action: action })
+    }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text().then(function (t) {
+        t.split(/\r?\n\r?\n/).forEach(function (fr) {
+          var ev = '', data = [];
+          fr.split(/\r?\n/).forEach(function (l) { if (l.indexOf('event:') === 0) ev = l.slice(6).trim(); else if (l.indexOf('data:') === 0) data.push(l.slice(5).replace(/^ /, '')); });
+          if (ev && ev !== 'trace') return;
+          var tr; try { tr = JSON.parse(data.join('\n').replace(/[\u0000-\u001f]/g, ' ')); } catch (x) { return; }
+          if (tr && tr.type) { got = true; onTrace(tr); }
+        });
+      });
+    }).catch(function (e) { e.got = got; throw e; });
+  }
+  function vfCall(action, onTrace) {
+    if (streamOK === false) return vfPlain(action, onTrace);
+    return vfStream(action, onTrace).then(function () { streamOK = true; }, function (e) {
+      if (window.console) console.warn('[Klätterguiden] Voiceflow stream:', e.message);
+      if (streamOK === true || e.got) throw e;
+      streamOK = false; return vfPlain(action, onTrace);
+    });
   }
   function vfAsk(text) {
-    var first = launched ? Promise.resolve() : vfCall({ type: 'launch' }).then(function () { launched = true; });
-    return first.then(function () { return vfCall({ type: 'text', payload: text }); }).then(function (traces) {
-      var parts = [], btn = [];
-      (traces || []).forEach(function (t) {
-        if (t.type === 'text' && t.payload && t.payload.message) parts.push(t.payload.message);
-        if (t.type === 'choice' && t.payload && t.payload.buttons) t.payload.buttons.forEach(function (b) { if (b && b.name) btn.push(b.name); });
-      });
+    var first = launched ? Promise.resolve() : vfCall({ type: 'launch' }, function () {}).then(function () { launched = true; });
+    var texts = [], ai = [], cur = null, btn = [];
+    function onTrace(t) {
+      var p = t.payload || {};
+      if (t.type === 'text') { var m = textOf(p); if (m && m.trim()) texts.push(m.trim()); }
+      else if (t.type === 'completion') {
+        if (p.state === 'start') { cur = ''; }
+        else if (p.state === 'content') { cur = (cur || '') + (p.content || ''); }
+        else if (p.state === 'end') { if (cur && cur.trim()) ai.push(cur.trim()); cur = null; }
+      }
+      else if (t.type === 'choice' && p.buttons) p.buttons.forEach(function (b) { if (b && b.name) btn.push(b.name); });
+    }
+    return first.then(function () { return vfCall({ type: 'text', payload: text }, onTrace); }).then(function () {
+      if (cur && cur.trim()) ai.push(cur.trim());
+      // Samma text kan komma både som bitar och som färdig text: ta den färdiga om den finns.
+      var parts = texts.length ? texts : ai;
       if (!parts.length) throw new Error('tomt svar');
       return { t: parts.join('\n\n'), c: btn.slice(0, 3) };
     });
@@ -382,7 +430,11 @@
       if (w.dataset.m === 'mobile') ta.blur();
       var row = thinkRow(); later(pin, 30); later(pin, 600);
       if (live) {
-        vfAsk(text).then(function (a) { show(row, a); }, function () { show(row, { t: 'Just nu når jag inte svarstjänsten. Försök igen om en stund, eller mejla kansliet@klatterforbundet.rf.se.' }); });
+        vfAsk(text).then(function (a) { show(row, a); }, function (e) {
+          // Når chatten inte Voiceflow används de förinspelade svaren, så att besökaren alltid får ett svar. Felet står i webbläsarens konsol.
+          if (window.console) console.warn('[Klätterguiden] Voiceflow svarade inte, visar förinspelat svar:', e && e.message);
+          launched = false; show(row, demoAnswer(text));
+        });
       } else {
         var a = demoAnswer(text);
         later(function () { show(row, a); }, reduce ? 500 : 1500 + Math.random() * 500);
