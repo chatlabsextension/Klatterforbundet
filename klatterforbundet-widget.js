@@ -9,7 +9,7 @@
   'use strict';
   if (window.KlatterChat) return;
 
-  var VF = { projectID: '', versionID: 'production' };
+  var VF = { projectID: '6af570ec527dcaa24e185820', versionID: 'production' };
   var SITE = 'https://www.klatterforbundet.se';
 
   var C = {
