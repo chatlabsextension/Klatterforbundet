@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Demo: AI-chatt för Svenska Klätterförbundet · Smartsvar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=League+Gothic&family=Cabin:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;font-family:'Cabin',system-ui,sans-serif;font-size:17px;line-height:1.55;color:#232323;background:#fff;-webkit-font-smoothing:antialiased}
+  .note{background:#FFF200;font-size:14px;font-weight:600;text-align:center;padding:8px 16px}
+  .note a{color:inherit}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .hero{position:relative;overflow:hidden;background:#232323;color:#fff}
+  .hero svg{position:absolute;inset:0;width:100%;height:100%;opacity:.55}
+  .hero .wrap{position:relative;padding-top:clamp(56px,10vw,120px);padding-bottom:clamp(56px,10vw,120px)}
+  .tag{font-family:'League Gothic','Oswald','Arial Narrow',sans-serif;font-size:24px;letter-spacing:.03em;color:#FFF200}
+  h1{margin:6px 0 0;font-family:'League Gothic','Oswald','Arial Narrow',sans-serif;font-weight:400;font-size:clamp(52px,9vw,104px);line-height:.94;}
+  .lead{margin:22px 0 0;max-width:46ch;font-size:19px;color:rgba(255,255,255,.82)}
+  .btn{display:inline-flex;align-items:center;gap:12px;margin-top:30px;padding:13px 24px 11px;border:0;border-radius:2px;background:#FFF200;color:#232323;font-family:'League Gothic','Oswald','Arial Narrow',sans-serif;font-size:26px;letter-spacing:.02em;cursor:pointer}
+  .btn:hover{background:#F2E600}
+  main{padding:clamp(40px,7vw,80px) 0 140px}
+  h2{margin:0 0 6px;font-family:'League Gothic','Oswald','Arial Narrow',sans-serif;font-weight:400;font-size:clamp(38px,5vw,54px);line-height:1;color:#3A3A3A}
+  .sub{margin:0 0 28px;color:#6B6B66;max-width:60ch}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1px;background:#E4E2DC;border:1px solid #E4E2DC}
+  .q{display:flex;flex-direction:column;gap:8px;align-items:flex-start;padding:20px 20px 22px;background:#fff;border:0;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:background .15s}
+  .q:hover{background:#FFF200}
+  .q small{font-family:'League Gothic','Oswald','Arial Narrow',sans-serif;font-size:18px;letter-spacing:.05em;color:#6B6B66}
+  .q:hover small{color:#232323}
+  .q span{font-size:18px;font-weight:600;line-height:1.3}
+  footer{padding:26px 0 120px;border-top:1px solid #E4E2DC;font-size:14px;color:#6B6B66}
+  footer a{color:#232323;font-weight:700}
+</style>
+</head>
+<body>
+<div class="note">Demo från Smartsvar. Sidan är inte klatterforbundet.se, den visar hur chatten kan se ut där.</div>
+
+<section class="hero">
+  <svg viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" fill="none" stroke="#fff" stroke-opacity=".2" aria-hidden="true">
+    <path d="M760 -20c110 90 320 60 470 180M700 -20c120 150 350 130 530 290M640 -20c130 220 390 210 600 400M570 -20c120 290 440 290 680 500M490 -20c110 370 500 380 760 620M400 -20c90 450 560 470 860 700"/>
+    <path d="M-20 470c170-80 260 30 430 0s260-140 430-80 200 170 380 140M-20 540c170-70 270 20 430 0s270-120 430-70 200 150 380 130" stroke-opacity=".1"/>
+  </svg>
+  <div class="wrap">
+    <div class="tag">#viklättrar</div>
+    <h1>Fråga. Få svar.<br>Klättra.</h1>
+    <p class="lead">En AI-chatt som svarar på frågor om medlemskap, Klätterförsäkringen, grönt och rött kort, kurser och klubbfrågor. Dygnet runt, med källan under varje svar.</p>
+    <button class="btn" type="button" onclick="KlatterChat.open()">Öppna chatten <span aria-hidden="true">→</span></button>
+  </div>
+</section>
+
+<main class="wrap">
+  <h2>Testa en fråga</h2>
+  <p class="sub">Klicka på en fråga, eller skriv en egen i chatten nere till höger.</p>
+  <div class="grid">
+    <button class="q" type="button"><small>FÖRSÄKRING</small><span>När börjar försäkringen gälla?</span></button>
+    <button class="q" type="button"><small>FÖRSÄKRING</small><span>Gäller försäkringen när min kompis provar på?</span></button>
+    <button class="q" type="button"><small>RESA</small><span>Jag ska klättra på Kalymnos i två veckor, är jag försäkrad?</span></button>
+    <button class="q" type="button"><small>KORT</small><span>Vad är skillnaden på grönt kort och rött kort?</span></button>
+    <button class="q" type="button"><small>KORT</small><span>Vad kostar grönt kort?</span></button>
+    <button class="q" type="button"><small>SKADA</small><span>Jag har skadat fingret, vad gör jag?</span></button>
+    <button class="q" type="button"><small>KLUBB</small><span>Finns det någon klubb i Uppsala?</span></button>
+    <button class="q" type="button"><small>FÖR KLUBBEN</small><span>Vad innebär de nya avgifterna för vår klubb?</span></button>
+    <button class="q" type="button"><small>FÖR KLUBBEN</small><span>Hur fungerar fritidskortet?</span></button>
+    <button class="q" type="button"><small>UTOMHUS</small><span>Vi såg en fågel som varnade vid klippan, vad gäller?</span></button>
+    <button class="q" type="button"><small>TRYGGHET</small><span>En tränare beter sig illa mot barnen, vart vänder jag mig?</span></button>
+    <button class="q" type="button"><small>ENGLISH</small><span>Do I need a card to belay in Sweden?</span></button>
+  </div>
+</main>
+
+<footer><div class="wrap">Byggd av <a href="https://smartsvar.se">Smartsvar</a> som demo för Svenska Klätterförbundet. Innehållet i svaren kommer från klatterforbundet.se, hämtat 12 november 2026.</div></footer>
+
+<script src="klatterforbundet-widget.js"></script>
+<script>
+  document.querySelectorAll('.q').forEach(function (b) { b.addEventListener('click', function () { KlatterChat.ask(b.querySelector('span').textContent); }); });
+</script>
+</body>
+</html>
